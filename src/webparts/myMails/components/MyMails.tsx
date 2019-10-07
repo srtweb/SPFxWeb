@@ -68,6 +68,10 @@ export default class MyMails extends React.Component<IMyMailsProps, IMyMailsStat
               { timeTaken: timeTaken }
             );
 
+            AppInsights.trackTrace({
+              message: 'MS Graph Query executed'
+            });
+
 
             let mailsList: ISPMessage[] = [];
             
