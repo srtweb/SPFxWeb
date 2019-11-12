@@ -38,6 +38,29 @@ export default class MyMails extends React.Component<IMyMailsProps, IMyMailsStat
   }
 
   public async componentDidMount(): Promise<void> {
+    if(this.props.trackInsights) {
+      if(this.props.trackInsights) {
+        AppInsights.trackEvent("Component Did Mount - Teams",
+          { 
+            SW_PageUrl: this.props.context.pageContext.web.absoluteUrl,
+            SW_UserName: this.props.context.pageContext.user.displayName,
+            SW_UserEmail: this.props.context.pageContext.user.email,
+            SW_Source: 'Teams'},
+            
+          { timeTaken: new Date() }
+        );
+      }
+      else {
+        AppInsights.trackEvent("Component Did Mount - SP",
+          { SW_PageUrl: this.props.context.pageContext.web.absoluteUrl,
+            SW_UserName: this.props.context.pageContext.user.displayName,
+            SW_UserEmail: this.props.context.pageContext.user.email,
+            SW_Source: 'SharePoint'},
+          { timeTaken: new Date() }
+        );
+      }
+    }
+
     this._getEmails("All");
   }
 
@@ -59,23 +82,56 @@ export default class MyMails extends React.Component<IMyMailsProps, IMyMailsStat
             let _endTime = new Date();
             var timeTaken: number = _endTime.valueOf() - _startTime.valueOf();
             console.log(`GetEmails - ${ emailType } : Took ${ timeTaken } ms to call Graph.`);
-            AppInsights.trackEvent("Get Emails using MS Graph",
-              { SW_MSGraphUrl: graphQuery,
-                SW_EmailType: emailType,
-                SW_PageUrl: this.props.context.pageContext.web.absoluteUrl,
-                SW_UserName: this.props.context.pageContext.user.displayName,
-                SW_UserEmail: this.props.context.pageContext.user.email},
-              { timeTaken: timeTaken }
-            );
+            if(this.props.teamsContext) {
+              console.log("Teams COntext");
 
-            AppInsights.trackTrace({
-              message: 'MS Graph Query executed'
-            });
+              if(this.props.trackInsights) {
+                AppInsights.trackEvent("Get Emails using MS Graph for Teams",
+                  { SW_MSGraphUrl: graphQuery,
+                    SW_EmailType: emailType,
+                    SW_PageUrl: this.props.context.pageContext.web.absoluteUrl,
+                    SW_UserName: this.props.context.pageContext.user.displayName,
+                    SW_UserEmail: this.props.context.pageContext.user.email,
+                    SW_Source: 'Teams'},
+                    
+                  { timeTaken: timeTaken }
+                );
 
+                AppInsights.trackTrace({
+                  message: 'MS Graph Query executed for Teams'
+                });
+              }
+            }
+            else {
+              console.log("SP Context");
+              if(this.props.trackInsights) {
+                AppInsights.trackEvent("Get Emails using MS Graph for SP",
+                  { SW_MSGraphUrl: graphQuery,
+                    SW_EmailType: emailType,
+                    SW_PageUrl: this.props.context.pageContext.web.absoluteUrl,
+                    SW_UserName: this.props.context.pageContext.user.displayName,
+                    SW_UserEmail: this.props.context.pageContext.user.email,
+                    SW_Source: 'SharePoint'},
+                  { timeTaken: timeTaken }
+                );
+
+                AppInsights.trackTrace({
+                  message: 'MS Graph Query executed for SP'
+                });
+              }
+            }
+            
+
+            if(this.props.teamsContext) {
+             
+            }
+            else {
+              
+            }
 
             let mailsList: ISPMessage[] = [];
             
-            if(typeof(messages) !== 'undefined' && messages["value"].length > 0) {
+            if(messages != null && typeof(messages) !== 'undefined' && messages["value"].length > 0) {
               messages["value"].map((messageItem) => 
               mailsList.push({
                 from_Email: messageItem.from.emailAddress.address as string,
@@ -87,14 +143,14 @@ export default class MyMails extends React.Component<IMyMailsProps, IMyMailsStat
 
               if(emailType == 'Unread') {
                 this.setState({
-                  unreadMailsCount: messages["@odata.count"],
+                  //unreadMailsCount: messages["@odata.count"],
                   unreadMails: mailsList,
                   readyToLoadUnread: true
                 });
               }
               else {
                 this.setState({
-                  allMailsCount: messages["@odata.count"],
+                  //allMailsCount: messages["@odata.count"],
                   allMails: mailsList,
                   readyToLoadAllMails: true
                 });
@@ -102,10 +158,10 @@ export default class MyMails extends React.Component<IMyMailsProps, IMyMailsStat
             }
             else { //No Emails
               this.setState({
-                unreadMailsCount: messages["@odata.count"],
+                //unreadMailsCount: messages["@odata.count"],
                 unreadMails: mailsList,
                 readyToLoadUnread: true,
-                allMailsCount: messages["@odata.count"],
+                //allMailsCount: messages["@odata.count"],
                 allMails: mailsList,
                 readyToLoadAllMails: true
               });
@@ -119,23 +175,29 @@ export default class MyMails extends React.Component<IMyMailsProps, IMyMailsStat
   public onLinkClick(item: PivotItem): void {
     if(item.props.headerText === 'Unread Emails') {
       this._getEmails('Unread');
-      AppInsights.trackEvent("Email Tab - Unread",
-        { SW_EmailTab: 'Unread Emails',
-          SW_PageUrl: this.props.context.pageContext.web.absoluteUrl,
-          SW_UserName: this.props.context.pageContext.user.displayName,
-          SW_UserEmail: this.props.context.pageContext.user.email},
-        {  }
-      );
+      
+      if(this.props.trackInsights) {
+        AppInsights.trackEvent("Email Tab - Unread",
+          { SW_EmailTab: 'Unread Emails',
+            SW_PageUrl: this.props.context.pageContext.web.absoluteUrl,
+            SW_UserName: this.props.context.pageContext.user.displayName,
+            SW_UserEmail: this.props.context.pageContext.user.email},
+          {  }
+        );
+      }
     }
     else {
       this._getEmails('All');
-      AppInsights.trackEvent("Email Tab - All",
-        { SW_EmailTab: 'All Emails',
-          SW_PageUrl: this.props.context.pageContext.web.absoluteUrl,
-          SW_UserName: this.props.context.pageContext.user.displayName,
-          SW_UserEmail: this.props.context.pageContext.user.email},
-        {  }
-      );
+      
+      if(this.props.trackInsights) {
+        AppInsights.trackEvent("Email Tab - All",
+          { SW_EmailTab: 'All Emails',
+            SW_PageUrl: this.props.context.pageContext.web.absoluteUrl,
+            SW_UserName: this.props.context.pageContext.user.displayName,
+            SW_UserEmail: this.props.context.pageContext.user.email},
+          {  }
+        );
+      }
     }
   }
 

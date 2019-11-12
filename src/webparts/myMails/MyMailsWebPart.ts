@@ -4,27 +4,46 @@ import { Version } from '@microsoft/sp-core-library';
 import {
   BaseClientSideWebPart,
   IPropertyPaneConfiguration,
-  PropertyPaneTextField
+  PropertyPaneTextField,
+  PropertyPaneCheckbox
 } from '@microsoft/sp-webpart-base';
 
 import * as strings from 'MyMailsWebPartStrings';
 import MyMails from './components/MyMails';
 import { IMyMailsProps } from './components/IMyMailsProps';
 import {AppInsights} from "applicationinsights-js";
+import * as microsoftTeams from '@microsoft/teams-js';
+import { string } from 'prop-types';
 
 export interface IMyMailsWebPartProps {
   description: string;
+  trackInsights: boolean;
+  msTeamsContext: microsoftTeams.Context;
 }
 
 export default class MyMailsWebPart extends BaseClientSideWebPart<IMyMailsWebPartProps> {
+  //private _teamsContext: microsoftTeams.Context;
 
-  public onInit(): Promise<void> {
+  public onInit(): Promise<any> {
     /* App Insights key: */
-    let appInsightsKey: string = "a40cf729-7e67-440d-a932-80f32d84f39e";
+    let appInsightsKey: string = "f98c94fb-b07a-485b-b434-078fbda560dd";
 
-    AppInsights.downloadAndSetup({ instrumentationKey: appInsightsKey });
+    if(!AppInsights.config) {
+      AppInsights.downloadAndSetup({ instrumentationKey: appInsightsKey });
+    }
 
-    return Promise.resolve<void>();
+    let retVal: Promise<any> = Promise.resolve();
+    if (this.context.microsoftTeams) {
+      retVal = new Promise((resolve, reject) => {
+        this.context.microsoftTeams.getContext(context => {
+          this.properties.msTeamsContext = context;
+          resolve();
+        });
+      });
+    }
+    return retVal;
+
+    //return Promise.resolve<void>();
   }
 
 
@@ -33,7 +52,9 @@ export default class MyMailsWebPart extends BaseClientSideWebPart<IMyMailsWebPar
       MyMails,
       {
         description: this.properties.description,
-        context: this.context
+        trackInsights: this.properties.trackInsights,
+        context: this.context,
+        teamsContext: this.properties.msTeamsContext
       }
     );
 
@@ -61,6 +82,11 @@ export default class MyMailsWebPart extends BaseClientSideWebPart<IMyMailsWebPar
               groupFields: [
                 PropertyPaneTextField('description', {
                   label: strings.DescriptionFieldLabel
+                }),
+                PropertyPaneCheckbox('trackInsights', {
+                  checked: false,
+                  disabled: false,
+                  text: strings.TrackInsightsLabel
                 })
               ]
             }
