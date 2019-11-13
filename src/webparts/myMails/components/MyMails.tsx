@@ -39,7 +39,7 @@ export default class MyMails extends React.Component<IMyMailsProps, IMyMailsStat
 
   public async componentDidMount(): Promise<void> {
     if(this.props.trackInsights) {
-      if(this.props.trackInsights) {
+      if(this.props.teamsContext) {
         AppInsights.trackEvent("Component Did Mount - Teams",
           { 
             SW_PageUrl: this.props.context.pageContext.web.absoluteUrl,
@@ -86,40 +86,38 @@ export default class MyMails extends React.Component<IMyMailsProps, IMyMailsStat
               console.log("Teams COntext");
 
               if(this.props.trackInsights) {
-                AppInsights.trackEvent("Get Emails using MS Graph for Teams",
-                  { SW_MSGraphUrl: graphQuery,
-                    SW_EmailType: emailType,
-                    SW_PageUrl: this.props.context.pageContext.web.absoluteUrl,
-                    SW_UserName: this.props.context.pageContext.user.displayName,
-                    SW_UserEmail: this.props.context.pageContext.user.email,
-                    SW_Source: 'Teams'},
-                    
-                  { timeTaken: timeTaken }
-                );
+                if(this.props.teamsContext) {
+                  AppInsights.trackEvent("Get Emails using MS Graph for Teams",
+                    { SW_MSGraphUrl: graphQuery,
+                      SW_EmailType: emailType,
+                      SW_PageUrl: this.props.context.pageContext.web.absoluteUrl,
+                      SW_UserName: this.props.context.pageContext.user.displayName,
+                      SW_UserEmail: this.props.context.pageContext.user.email,
+                      SW_Source: 'Teams'},
+                      
+                    { timeTaken: timeTaken }
+                  );
+                  AppInsights.trackTrace({
+                    message: 'MS Graph Query executed for Teams'
+                  });
+                }
+                else {
+                  console.log("SP Context");
+                  AppInsights.trackEvent("Get Emails using MS Graph for SP",
+                    { SW_MSGraphUrl: graphQuery,
+                      SW_EmailType: emailType,
+                      SW_PageUrl: this.props.context.pageContext.web.absoluteUrl,
+                      SW_UserName: this.props.context.pageContext.user.displayName,
+                      SW_UserEmail: this.props.context.pageContext.user.email,
+                      SW_Source: 'SharePoint'},
+                    { timeTaken: timeTaken }
+                  );
 
-                AppInsights.trackTrace({
-                  message: 'MS Graph Query executed for Teams'
-                });
+                  AppInsights.trackTrace({
+                    message: 'MS Graph Query executed for SP'
+                  });
+                }
               }
-            }
-            else {
-              console.log("SP Context");
-              if(this.props.trackInsights) {
-                AppInsights.trackEvent("Get Emails using MS Graph for SP",
-                  { SW_MSGraphUrl: graphQuery,
-                    SW_EmailType: emailType,
-                    SW_PageUrl: this.props.context.pageContext.web.absoluteUrl,
-                    SW_UserName: this.props.context.pageContext.user.displayName,
-                    SW_UserEmail: this.props.context.pageContext.user.email,
-                    SW_Source: 'SharePoint'},
-                  { timeTaken: timeTaken }
-                );
-
-                AppInsights.trackTrace({
-                  message: 'MS Graph Query executed for SP'
-                });
-              }
-            }
             
 
             if(this.props.teamsContext) {
