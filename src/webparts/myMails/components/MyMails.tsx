@@ -82,90 +82,80 @@ export default class MyMails extends React.Component<IMyMailsProps, IMyMailsStat
             let _endTime = new Date();
             var timeTaken: number = _endTime.valueOf() - _startTime.valueOf();
             console.log(`GetEmails - ${ emailType } : Took ${ timeTaken } ms to call Graph.`);
-            if(this.props.teamsContext) {
-              console.log("Teams COntext");
-
-              if(this.props.trackInsights) {
-                if(this.props.teamsContext) {
-                  AppInsights.trackEvent("Get Emails using MS Graph for Teams",
-                    { SW_MSGraphUrl: graphQuery,
-                      SW_EmailType: emailType,
-                      SW_PageUrl: this.props.context.pageContext.web.absoluteUrl,
-                      SW_UserName: this.props.context.pageContext.user.displayName,
-                      SW_UserEmail: this.props.context.pageContext.user.email,
-                      SW_Source: 'Teams'},
-                      
-                    { timeTaken: timeTaken }
-                  );
-                  AppInsights.trackTrace({
-                    message: 'MS Graph Query executed for Teams'
-                  });
-                }
-                else {
-                  console.log("SP Context");
-                  AppInsights.trackEvent("Get Emails using MS Graph for SP",
-                    { SW_MSGraphUrl: graphQuery,
-                      SW_EmailType: emailType,
-                      SW_PageUrl: this.props.context.pageContext.web.absoluteUrl,
-                      SW_UserName: this.props.context.pageContext.user.displayName,
-                      SW_UserEmail: this.props.context.pageContext.user.email,
-                      SW_Source: 'SharePoint'},
-                    { timeTaken: timeTaken }
-                  );
-
-                  AppInsights.trackTrace({
-                    message: 'MS Graph Query executed for SP'
-                  });
-                }
-              }
-            
-
-            if(this.props.teamsContext) {
-             
-            }
-            else {
-              
-            }
-
-            let mailsList: ISPMessage[] = [];
-            
-            if(messages != null && typeof(messages) !== 'undefined' && messages["value"].length > 0) {
-              messages["value"].map((messageItem) => 
-              mailsList.push({
-                from_Email: messageItem.from.emailAddress.address as string,
-                from_Name: messageItem.from.emailAddress.name,
-                subject: messageItem.subject, 
-                webLink: messageItem.webLink, 
-                receivedDate: messageItem.receivedDateTime})
-              );
-
-              if(emailType == 'Unread') {
-                this.setState({
-                  //unreadMailsCount: messages["@odata.count"],
-                  unreadMails: mailsList,
-                  readyToLoadUnread: true
+            if(this.props.trackInsights) {
+              if(this.props.teamsContext) {
+                AppInsights.trackEvent("Get Emails using MS Graph for Teams",
+                  { SW_MSGraphUrl: graphQuery,
+                    SW_EmailType: emailType,
+                    SW_PageUrl: this.props.context.pageContext.web.absoluteUrl,
+                    SW_UserName: this.props.context.pageContext.user.displayName,
+                    SW_UserEmail: this.props.context.pageContext.user.email,
+                    SW_Source: 'Teams'},
+                    
+                  { timeTaken: timeTaken }
+                );
+                AppInsights.trackTrace({
+                  message: 'MS Graph Query executed for Teams'
                 });
               }
               else {
+                console.log("SP Context");
+                AppInsights.trackEvent("Get Emails using MS Graph for SP",
+                  { SW_MSGraphUrl: graphQuery,
+                    SW_EmailType: emailType,
+                    SW_PageUrl: this.props.context.pageContext.web.absoluteUrl,
+                    SW_UserName: this.props.context.pageContext.user.displayName,
+                    SW_UserEmail: this.props.context.pageContext.user.email,
+                    SW_Source: 'SharePoint'},
+                  { timeTaken: timeTaken }
+                );
+
+                AppInsights.trackTrace({
+                  message: 'MS Graph Query executed for SP'
+                });
+              }
+            }
+            
+              let mailsList: ISPMessage[] = [];
+              
+              if(messages != null && typeof(messages) !== 'undefined' && messages["value"].length > 0) {
+                messages["value"].map((messageItem) => 
+                mailsList.push({
+                  from_Email: messageItem.from.emailAddress.address as string,
+                  from_Name: messageItem.from.emailAddress.name,
+                  subject: messageItem.subject, 
+                  webLink: messageItem.webLink, 
+                  receivedDate: messageItem.receivedDateTime})
+                );
+
+                if(emailType == 'Unread') {
+                  this.setState({
+                    //unreadMailsCount: messages["@odata.count"],
+                    unreadMails: mailsList,
+                    readyToLoadUnread: true
+                  });
+                }
+                else {
+                  this.setState({
+                    //allMailsCount: messages["@odata.count"],
+                    allMails: mailsList,
+                    readyToLoadAllMails: true
+                  });
+                }
+              }
+              else { //No Emails
                 this.setState({
+                  //unreadMailsCount: messages["@odata.count"],
+                  unreadMails: mailsList,
+                  readyToLoadUnread: true,
                   //allMailsCount: messages["@odata.count"],
                   allMails: mailsList,
                   readyToLoadAllMails: true
                 });
               }
-            }
-            else { //No Emails
-              this.setState({
-                //unreadMailsCount: messages["@odata.count"],
-                unreadMails: mailsList,
-                readyToLoadUnread: true,
-                //allMailsCount: messages["@odata.count"],
-                allMails: mailsList,
-                readyToLoadAllMails: true
-              });
-            }
+            
+          });
         });
-      });
       return '';
   }
 
@@ -226,9 +216,9 @@ export default class MyMails extends React.Component<IMyMailsProps, IMyMailsStat
       .then((client: MSGraphClient): void => {
         // From https://github.com/microsoftgraph/msgraph-sdk-javascript
         client
-          .api('/users/' + email)
-          .version("v1.0")
-          .select("displayName,mail,userPrincipalName")
+          .api('/users/me')
+          //.version("v1.0")
+          //.select("displayName,mail,userPrincipalName")
           //.filter(`(givenName eq '${escape(this.state.searchFor)}') or (surname eq '${escape(this.state.searchFor)}') or (displayName eq '${escape(this.state.searchFor)}')`)
           .get((err, res) => {  
             if(res != null && res['userPrincipalName'].length > 0) {
