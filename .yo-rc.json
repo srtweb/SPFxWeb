@@ -2,7 +2,7 @@
   "@microsoft/generator-sharepoint": {
     "isCreatingSolution": false,
     "environment": "spo",
-    "version": "1.9.1",
+    "version": "1.10.0",
     "libraryName": "sp-fx-web",
     "libraryId": "c2234a40-6340-447c-b0b8-150a600d569f",
     "packageManager": "npm",

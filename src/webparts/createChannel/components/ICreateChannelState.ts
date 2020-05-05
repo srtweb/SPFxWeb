@@ -6,11 +6,13 @@ export interface ICreateChannelState {
     members?: string[];
     channelName?: string;
     channelDescription?: string;
+    channelType?: any;
     spinnerText?: string;
     creationState?: CreationState;
     myTeams: IMyTeams[];
     channelUrl?: string;
     messageToDisplay?: string;
+    
  }
  
  export enum CreationState {

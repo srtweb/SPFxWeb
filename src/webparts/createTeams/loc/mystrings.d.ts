@@ -16,8 +16,10 @@ declare interface ICreateTeamsWebPartStrings {
   CreatingGroup: string;
   CreatingTeam: string;
   CreatingChannel: string;
+  AddingMembers: string;
   Error: string;
   Success: string;
+  cSuccess: string;
   StartOver: string;
   OpenTeams: string;
 }

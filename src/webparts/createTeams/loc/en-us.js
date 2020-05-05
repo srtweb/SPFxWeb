@@ -10,14 +10,16 @@ define([], function() {
     "CreateChannel": "Create new channel in the Team",
     "ChannelName": "Channel name",
     "ChannelDescription": "Channel description",
-    "Welcome": "Teams Creator",
+    "Welcome": "Teams/Channel Creator",
     "Create": "Create",
     "Clear": "Clear",
     "CreatingGroup": "Creating O365 Group...",
     "CreatingTeam": "Creating team...",
     "CreatingChannel": "Creating channel...",
+    "AddingMembers": "Adding members...",
     "Error": "Something went wrong during the process. Please, refer browser console for more details.",
     "Success": "All selected components have been successfully created.",
+    "cSuccess": "Channel has been successfully created",
     "StartOver": "Start over",
     "OpenTeams": "Open Teams"
   }

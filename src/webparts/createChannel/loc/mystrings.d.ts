@@ -10,12 +10,15 @@ declare interface ICreateChannelWebPartStrings {
   CreateChannel: string;
   ChannelName: string;
   ChannelDescription: string;
+  ChannelType: string;
   Welcome: string;
   Create: string;
   Clear: string;
   CreatingGroup: string;
   CreatingTeam: string;
   CreatingChannel: string;
+  AddingMembers: string;
+  ValidateUser: string;
   Error: string;
   Success: string;
   StartOver: string;
