@@ -20,6 +20,7 @@ define([], function() {
     "Error": "Something went wrong during the process. Please, refer browser console for more details.",
     "Success": "All selected components have been successfully created.",
     "cSuccess": "Channel has been successfully created",
+    "tSuccess": "Team has been successfully created",
     "StartOver": "Start over",
     "OpenTeams": "Open Teams"
   }

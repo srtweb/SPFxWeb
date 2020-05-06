@@ -20,6 +20,7 @@ declare interface ICreateTeamsWebPartStrings {
   Error: string;
   Success: string;
   cSuccess: string;
+  tSuccess: string;
   StartOver: string;
   OpenTeams: string;
 }

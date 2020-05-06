@@ -250,7 +250,7 @@ export default class CreateTeams extends React.Component<ICreateTeamsProps, ICre
   //Team Members
   private _onTMembersSelected(members: IPeoplePickerUserItem[]) {
     this.setState({
-      tmembers: members.map(m => m.id)
+      tmembers: members.map(m => m.secondaryText)
     });
   }
 
@@ -272,7 +272,14 @@ export default class CreateTeams extends React.Component<ICreateTeamsProps, ICre
     });
   }
 
+  private async _wait(ms) {
+    return new Promise(resolve => {
+      setTimeout(resolve, ms);
+    });
+  }
+
   private async _onCreateClick() {
+    const { towners, tmembers } = this.state;
     //this._processCreationRequest();
     //Team or Channel
     if(this.state.channelTeam != undefined && this.state.channelTeam.key == "Channel") {
@@ -354,7 +361,7 @@ export default class CreateTeams extends React.Component<ICreateTeamsProps, ICre
         else {
           this.setState({
             creationState: CreationState.created,
-            Success: strings.cSuccess,
+            Success: strings.tSuccess,
             buttonText: 'Open Team',
             channelTeamUrl: teamUrl
           });
@@ -472,9 +479,8 @@ export default class CreateTeams extends React.Component<ICreateTeamsProps, ICre
                     console.log(`${userDetails.mail} is a not a member`);
                     await this._addUserToGroup(userDetails.id, graphClient);
                     console.log(`${userDetails.mail} has been added to Group`);
-                    setTimeout(async() => {
-                      await this._addUserToChannel(userDetails.id, teamId, privateResponse.id, "owner", graphClient);
-                      }, 5000);
+                    await this._wait(5000);
+                    await this._addUserToChannel(userDetails.id, teamId, privateResponse.id, "owner", graphClient);
                   }
                 }
                 catch(ex) {
@@ -510,9 +516,9 @@ export default class CreateTeams extends React.Component<ICreateTeamsProps, ICre
                     console.log(`${userDetails.mail} is a not a member`);
                     await this._addUserToGroup(userDetails.id, graphClient);
                     console.log(`${userDetails.mail} has been added to Group`);
-                    setTimeout(async() => {
-                      await this._addUserToChannel(userDetails.id, teamId, privateResponse.id, "member", graphClient);
-                      }, 2000);
+
+                    await this._wait(2000);
+                    await this._addUserToChannel(userDetails.id, teamId, privateResponse.id, "member", graphClient);
                   }
                 }
                 catch(ex) {
@@ -563,74 +569,93 @@ export default class CreateTeams extends React.Component<ICreateTeamsProps, ICre
 
       this.setState({
         creationState: CreationState.creating,
-        spinnerText: strings.CreatingGroup
-      });
-      //this._createTeamWithBeta(graphClient);
-  
-      // Create a group
-      const groupId = await this._createGroup(graphClient);
-      if (!groupId) {
-        this._onError();
-        return;
-      }
-  
-      this.setState({
         spinnerText: strings.CreatingTeam
       });
-  
-      //Create Team
-      const teamId = await this._createTeamWithAttempts(groupId, graphClient);
-      if (!teamId) {
-        this._onError();
-        return;
-      }
+      const userDetails = await this._getUserDetails(this.props.context.pageContext.user.email, graphClient);
 
-      /* this.props.context.msGraphClientFactory
-        .getClient()
-        .then((client: MSGraphClient): void => {
-          var team:any = {
-            "template@odata.bind": "https://graph.microsoft.com/beta/teamsTemplates('standard')",
-            "displayName": teamName,
-            "description": teamDescription,
+      const newTeam =  await this._createTeamWithBeta(userDetails.id, graphClient);
+      //Get New Team Details
+      await this._wait(5000);
+      //Check for the Team
+      const myTeams = await graphClient.api(`me/joinedTeams`).version("v1.0").get();
+      if(myTeams != null && myTeams.value.length > 0) {
+        for(let myTeam of myTeams.value) {
+          let teamDesc: string = this.state.teamDescription;
+
+          if(myTeam.displayName == this.state.teamName) {
+            const teamDetails = await graphClient.api(`teams/${myTeam.id}`).version("v1.0").get();
+            if(teamDetails != null && teamDetails.webUrl != null) {
+              //Add Members/Ownerrs
+              //Owners
+              if(towners != null && towners.length > 0) {
+                for(let owner of towners) {
+                  let userDetails = await this._getUserDetails(owner, graphClient);
+                  if(userDetails.id != null) {
+                    this.setState({
+                      spinnerText: `Adding '${userDetails.displayName}' as Owner`
+                    });
+
+                    //Check whether the user is Team Member
+                    let isMember: boolean = await this._isUserTeamMember(userDetails.mail);
+                    try {
+                      if(isMember) {
+                        console.log(`${userDetails.mail} is a member`);
+                      }
+                      else {
+                        console.log(`${userDetails.mail} is a not a member`);
+                        await this._addUserToTeam(userDetails.id, teamDetails.id, "owners", graphClient);
+                        console.log(`${userDetails.mail} has been added to Group`);
+                      }
+                    }
+                    catch(ex) {
+                      console.log('Error adding Owners - ' + userDetails.mail + " - " +  ex.message);
+                    }
+                  }
+                }
+              }
+
+              //Members
+              if(tmembers != null && tmembers.length > 0) {
+                for(let member of tmembers) {
+                  const userDetails = await this._getUserDetails(member, graphClient);
+                  if(userDetails.id != null) {
+                    this.setState({
+                      spinnerText: `Adding '${userDetails.displayName}' as Member`
+                    });
+
+                    //Check whether the user is Team Member
+                    let isMember: boolean = await this._isUserTeamMember(userDetails.mail);
+                    try {
+                      if(isMember) {
+                        console.log(`${userDetails.mail} is a member`);
+                      }
+                      else {
+                        console.log(`${userDetails.mail} is a not a member`);
+                        await this._addUserToTeam(userDetails.id, teamDetails.id, "members", graphClient);
+                        console.log(`${userDetails.mail} has been added to Group`);
+                      }
+                    }
+                    catch(ex) {
+                      console.log('Error adding Members - ' + userDetails.mail + " - " +  ex.message);
+                    }
+                    
+                  }
+                }
+              }
+
+              this.setState({
+                creationState: CreationState.created,
+                Success: strings.tSuccess,
+                buttonText: 'Open Team',
+                channelTeamUrl: teamDetails.webUrl
+              });
+              return teamDetails.webUrl;
+            }
           }
-          client
-          .api("https://graph.microsoft.com/beta/teams/")
-          .post(team)
-          .then((groupResponse) => {
-            console.log(groupResponse);  
-            return groupResponse.webUrl;
-          });
-        }); 
-
-      let team: any = '';
-      const currentUserDetails = await this._getUserDetails(this.props.context.pageContext.user.email, graphClient);
-      if(currentUserDetails != null && currentUserDetails.id != null) {
-        team = {
-          'template@odata.bind': "https://graph.microsoft.com/beta/teamsTemplates/standard",
-          displayName: teamName,
-          description: teamDescription,
-          visibility: "Private",
-          'owners@odata.bind': [
-            `https://graph.microsoft.com/beta/users('${currentUserDetails.id}')`
-          ]
-        };
-      }
-      else {
-        team = {
-          'template@odata.bind': "https://graph.microsoft.com/beta/teamsTemplates/standard",
-          displayName: teamName,
-          description: teamDescription,
-          visibility: "Private"
-        };
-      }
-      
-      const teamResponse = await graphClient.api(`teams`).version('beta').post(team);
-      if(teamResponse != null) {
-        console.log(teamResponse);
-        return teamResponse.webUrl;
+        }
       }
       return;
-      */
+
     }
     catch (error) {
       console.error(error);
@@ -665,6 +690,14 @@ export default class CreateTeams extends React.Component<ICreateTeamsProps, ICre
       }); 
       return;
     }
+    return;
+  }
+
+  //Add User to Team - Based on Team ID
+  private async _addUserToTeam(userId: string, teamId: string, accessType: string, graphClient: MSGraphClient): Promise<any> {
+    await graphClient.api(`groups/${teamId}/${accessType}/$ref`).version("v1.0").post({
+      '@odata.id': `https://graph.microsoft.com/v1.0/directoryObjects/${userId}`
+    }); 
     return;
   }
 
@@ -776,18 +809,31 @@ export default class CreateTeams extends React.Component<ICreateTeamsProps, ICre
     });
   }
 
-  private async _createTeamWithBeta(graphClient: MSGraphClient): Promise<string> {
-    return new Promise<string>(resolve => {
-      graphClient.api(`beta/teams`).version('beta').post({
-        "template@odata.bind": "https://graph.microsoft.com/beta/teamsTemplates('standard')",
-        "displayName": "My Sample Team",
-        "description": "My Sample Team’s Description"
-      }).then(response => {
-        resolve(response.id);
-      }, () => {
-        resolve('');
-      });
-    });
+  private async _createTeamWithBeta(userID: string, graphClient: MSGraphClient): Promise<any> {
+    const teamBody = {
+      'template@odata.bind': "https://graph.microsoft.com/beta/teamsTemplates('standard')",
+      displayName: this.state.teamName,
+      description: this.state.teamDescription,
+    };
+    const createTeam = await graphClient.api(`teams`).version("beta").post(teamBody);
+
+    if(createTeam != null && createTeam != undefined) {
+      return createTeam;
+    }
+    return;
+
+    /* var team:any = {
+      "template@odata.bind": "https://graph.microsoft.com/beta/teamsTemplates('standard')",
+      "displayName": this.state.teamName,
+      "description": "My Sample Team’s Description",
+    };
+    graphClient
+      .api("https://graph.microsoft.com/beta/teams/")
+      .post(team)
+      .then((groupResponse) => {
+         console.log(groupResponse);  
+      }); */
+    
   }
 
   //Create channel in the team
