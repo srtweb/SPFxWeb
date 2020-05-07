@@ -19,7 +19,7 @@
     "group": { "default": "Other" },
     "title": { "default": "Create Channel" },
     "description": { "default": "Create Teams Channel" },
-    "officeFabricIconFontName": "TeamsLogo",
+    "officeFabricIconFontName": "Page",
     "properties": {
       "description": "CreateChannel"
     }
