@@ -10,14 +10,6 @@
         }
       ]
     },
-    "create-channels-web-part": {
-      "components": [
-        {
-          "entrypoint": "./lib/webparts/createChannels/CreateChannelsWebPart.js",
-          "manifest": "./src/webparts/createChannels/CreateChannelsWebPart.manifest.json"
-        }
-      ]
-    },
     "create-teams-web-part": {
       "components": [
         {
@@ -38,7 +30,6 @@
   "externals": {},
   "localizedResources": {
     "MyMailsWebPartStrings": "lib/webparts/myMails/loc/{locale}.js",
-    "CreateChannelsWebPartStrings": "lib/webparts/createChannels/loc/{locale}.js",
     "CreateTeamsWebPartStrings": "lib/webparts/createTeams/loc/{locale}.js",
     "ControlStrings": "node_modules/@pnp/spfx-controls-react/lib/loc/{locale}.js",
     "CreateChannelWebPartStrings": "lib/webparts/createChannel/loc/{locale}.js"

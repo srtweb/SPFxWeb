@@ -369,59 +369,7 @@ export default class CreateTeams extends React.Component<ICreateTeamsProps, ICre
       }
     }
   }
-
-  private async _processCreationRequest(): Promise<void> { 
-    // initializing graph client
-    const graphClient = await this.props.context.msGraphClientFactory.getClient();
-
-    this.setState({
-      creationState: CreationState.creating,
-      spinnerText: strings.CreatingGroup
-    });
-    //this._createTeamWithBeta(graphClient);
-
-    // Create a group
-    const groupId = await this._createGroup(graphClient);
-    if (!groupId) {
-      this._onError();
-      return;
-    }
-
-    this.setState({
-      spinnerText: strings.CreatingTeam
-    });
-
-    //Create Team
-    const teamId = await this._createTeamWithAttempts(groupId, graphClient);
-    if (!teamId) {
-      this._onError();
-      return;
-    }
-
-    if (!this.state.createChannel) {
-      this.setState({
-        creationState: CreationState.created
-      });
-      return;
-    }
-
-    this.setState({
-      spinnerText: strings.CreatingChannel
-    });
-
-    // Create channel
-    const channelId = await this._createChannel(teamId, graphClient);
-    if (!channelId) {
-      this._onError();
-      return;
-    }
-    else {
-      this.setState({
-        creationState: CreationState.created
-      });
-    }
-  }
-
+  
   private async _ccreateChannel(teamId: string, channelType: string, graphClient: MSGraphClient): Promise<string> {
     const {
       cchannelName,
@@ -574,87 +522,71 @@ export default class CreateTeams extends React.Component<ICreateTeamsProps, ICre
       });
       const userDetails = await this._getUserDetails(this.props.context.pageContext.user.email, graphClient);
       let teamResult: any = 'Microsoft Team';
+        
+      const newTeam =  await this._createTeamWithBeta(userDetails.id, graphClient);
+      //Get New Team Details
+      await this._wait(5000);
+      //Check for the Team
+      const myTeams = await graphClient.api(`me/joinedTeams`).version("v1.0").get();
+      if(myTeams != null && myTeams.value.length > 0) {
+        for(let myTeam of myTeams.value) {
+          if(myTeam.displayName == this.state.teamName) {
+            const teamDetails = await graphClient.api(`teams/${myTeam.id}`).version("v1.0").get();
+            if(teamDetails != null && teamDetails.webUrl != null) {
+              //Add Members/Ownerrs
+              //Owners
+              if(towners != null && towners.length > 0) {
+                for(let owner of towners) {
+                  let tOwnerUserDetails = await this._getUserDetails(owner, graphClient);
+                  if(tOwnerUserDetails.id != null) {
+                    this.setState({
+                      spinnerText: `Adding '${tOwnerUserDetails.displayName}' as Owner`
+                    });
 
-        await graphClient.api("teams").version('beta').post({
-          "template@odata.bind": "https://graph.microsoft.com/beta/teamsTemplates('standard')",
-          "displayName": this.state.teamName,
-          "description": this.state.teamDescription,
-        }).then(async response => {
-          await this._wait(5000);
-          //Check for the Team
-          const myTeams = await graphClient.api(`me/joinedTeams`).version("v1.0").get();
-          if(myTeams != null && myTeams.value.length > 0) {
-            for(let myTeam of myTeams.value) {
-              let teamDesc: string = this.state.teamDescription;
-
-              if(myTeam.displayName == this.state.teamName) {
-                const teamDetails = await graphClient.api(`teams/${myTeam.id}`).version("v1.0").get();
-                if(teamDetails != null && teamDetails.webUrl != null) {
-                  //Add Members/Ownerrs
-                  //Owners
-                  if(towners != null && towners.length > 0) {
-                    for(let owner of towners) {
-                      let tOwnerUserDetails = await this._getUserDetails(owner, graphClient);
-                      if(tOwnerUserDetails.id != null) {
-                        this.setState({
-                          spinnerText: `Adding '${tOwnerUserDetails.displayName}' as Owner`
-                        });
-
-                        try {
-                          await this._addUserToTeam(tOwnerUserDetails.id.trim(), teamDetails.id.trim(), "owners", graphClient);
-                          console.log(`${tOwnerUserDetails.mail} has been added to Group`);
-                        }
-                        catch(ex) {
-                          console.log('Error adding Owners to Team - ' + this.state.teamName + " -" + tOwnerUserDetails.mail + " - " +  ex.message);
-                        }
-                      }
+                    try {
+                      await this._addUserToTeam(tOwnerUserDetails.id.trim(), teamDetails.id.trim(), "owners", graphClient);
+                      console.log(`${tOwnerUserDetails.mail} has been added to Group`);
+                    }
+                    catch(ex) {
+                      console.log('Error adding Owners to Team - ' + this.state.teamName + " -" + tOwnerUserDetails.mail + " - " +  ex.message);
                     }
                   }
-
-                  //Members
-                  if(tmembers != null && tmembers.length > 0) {
-                    for(let member of tmembers) {
-                      let memberUserDetails = await this._getUserDetails(member, graphClient);
-                      if(memberUserDetails.id != null) {
-                        this.setState({
-                          spinnerText: `Adding '${memberUserDetails.displayName}' as Member`
-                        });
-
-                        try {
-                          await this._addUserToTeam(memberUserDetails.id.trim(), teamDetails.id.trim(), "members", graphClient);
-                          console.log(`${memberUserDetails.mail} has been added to Group`);
-                        }
-                        catch(ex) {
-                          console.log('Error adding Members to Team - ' + this.state.teamName + " -" + memberUserDetails.mail + " - " +  ex.message);
-                        }
-                      }
-                    }
-                  }
-
-                  this.setState({
-                    creationState: CreationState.created,
-                    Success: strings.tSuccess,
-                    buttonText: 'Open Team',
-                    channelTeamUrl: teamDetails.webUrl
-                  });
-                  teamResult = teamDetails.webUrl;
-                  //return teamDetails.webUrl;
                 }
               }
+
+              //Members
+              if(tmembers != null && tmembers.length > 0) {
+                for(let member of tmembers) {
+                  let memberUserDetails = await this._getUserDetails(member, graphClient);
+                  if(memberUserDetails.id != null) {
+                    this.setState({
+                      spinnerText: `Adding '${memberUserDetails.displayName}' as Member`
+                    });
+
+                    try {
+                      await this._addUserToTeam(memberUserDetails.id.trim(), teamDetails.id.trim(), "members", graphClient);
+                      console.log(`${memberUserDetails.mail} has been added to Group`);
+                    }
+                    catch(ex) {
+                      console.log('Error adding Members to Team - ' + this.state.teamName + " -" + memberUserDetails.mail + " - " +  ex.message);
+                    }
+                  }
+                }
+              }
+
+              this.setState({
+                creationState: CreationState.created,
+                Success: strings.tSuccess,
+                buttonText: 'Open Team',
+                channelTeamUrl: teamDetails.webUrl
+              });
+              //teamResult = teamDetails.webUrl;
+              return teamDetails.webUrl;
             }
           }
-          //return;
-        }).catch(err => {
-          console.log(err);
-          teamResult = `ERROR - ${err.message}`;
-          //return;
-        });
-      
-      
-        return teamResult;
-      //const newTeam =  await this._createTeamWithBeta(userDetails.id, graphClient);
-      //Get New Team Details
-      
+        }
+      }
+      return teamResult;
 
     }
     catch (error) {
@@ -753,101 +685,6 @@ export default class CreateTeams extends React.Component<ICreateTeamsProps, ICre
     return false;
   }
 
-  //Create O365 Group
-  private async _createGroup(graphClient: MSGraphClient): Promise<string> {
-    const displayName = this.state.teamName;
-    const mailNickname = this._generateMailNickname(displayName);
-
-    let {
-      towners,
-      tmembers
-    } = this.state;
-
-    const groupRequest = {
-      displayName: displayName,
-      description: this.state.teamDescription,
-      groupTypes: [
-        'Unified'
-      ],
-      mailEnabled: true,
-      mailNickname: mailNickname,
-      securityEnabled: false
-    };
-
-    if (towners && towners.length) {
-      groupRequest['owners@data.bind'] = towners.map(owner => {
-        return `https://graph.microsoft.com/v1.0/users/${owner}`;
-      });
-    }
-    if (tmembers && tmembers.length) {
-      groupRequest['members@data.bind'] = tmembers.map(member => {
-        return `https://graph.microsoft.com/v1.0/users/${member}`;
-      });
-    }
-
-    try {
-      const response = await graphClient.api('groups').version('v1.0').post(groupRequest);
-      return response.id;
-    }
-    catch (error) {
-      console.error(error);
-      return '';
-    }
-  }
-
-  //Generates mail nick name by display name of the group
-  private _generateMailNickname(displayName: string): string {
-    return displayName.toLowerCase().replace(/\s/gmi, '-');
-  }
-
-  //Creates team. as mentioned in the documentation - we need to make 3 attempts if team creation request errored
-  //https://docs.microsoft.com/en-us/graph/api/team-put-teams?view=graph-rest-1.0&tabs=http
-  private async _createTeamWithAttempts(groupId: string, graphClient: MSGraphClient): Promise<string> {
-    let attemptsCount = 0;
-    let teamId: string = '';
-
-    // From the documentation: If the group was created less than 15 minutes ago, it's possible for the Create team call to fail with a 404 error code due to replication delays. 
-    // The recommended pattern is to retry the Create team call three times, with a 10 second delay between calls.
-    //https://docs.microsoft.com/en-us/graph/api/team-put-teams?view=graph-rest-1.0&tabs=http
-
-    do {
-      teamId = await this._createTeam(groupId, graphClient);
-      if (teamId) {
-        attemptsCount = 3;
-      }
-      else {
-        attemptsCount++;
-      }
-    } while (attemptsCount < 3);
-
-    return teamId;
-  }
-
-  //Waits 10 seconds and tries to create a team
-  private async _createTeam(groupId: string, graphClient: MSGraphClient): Promise<string> {
-    return new Promise<string>(resolve => {
-      setTimeout(() => {
-        graphClient.api(`groups/${groupId}/team`).version('v1.0').put({
-          memberSettings: {
-            allowCreateUpdateChannels: true
-          },
-          messagingSettings: {
-            allowUserEditMessages: true,
-            allowUserDeleteMessages: true
-          },
-          funSettings: {
-            allowGiphy: true,
-            giphyContentRating: "strict"
-          }
-        }).then(response => {
-          resolve(response.id);
-        }, () => {
-          resolve('');
-        });
-      }, 10000);
-    });
-  }
-
   private async _createTeamWithBeta(userID: string, graphClient: MSGraphClient): Promise<any> {
     const teamBody = {
       'template@odata.bind': "https://graph.microsoft.com/beta/teamsTemplates('standard')",
@@ -875,27 +712,6 @@ export default class CreateTeams extends React.Component<ICreateTeamsProps, ICre
     
   }
 
-  //Create channel in the team
-  private async _createChannel(teamId: string, graphClient: MSGraphClient): Promise<string> {
-    const {
-      cchannelName,
-      cchannelDescription
-    } = this.state;
-
-    try {
-      const response = await graphClient.api(`teams/${teamId}/channels`).version('v1.0').post({
-        displayName: cchannelName,
-        description: cchannelDescription
-      });
-
-      return response.id;
-    }
-    catch (error) {
-      console.error(error);
-      return '';
-    }
-  }
-
   private _onError(message?: string): void {
     this.setState({
       creationState: CreationState.error
@@ -918,6 +734,8 @@ export default class CreateTeams extends React.Component<ICreateTeamsProps, ICre
       teamDescription: '',
       cmembers: [],
       cowners: [],
+      tmembers: [],
+      towners: [],
       createChannel: false,
       cchannelName: '',
       cchannelDescription: '',
@@ -925,7 +743,11 @@ export default class CreateTeams extends React.Component<ICreateTeamsProps, ICre
       spinnerText: '',
       cselectedTeam: '',
       cchannelType: '',
-      channelTeam: []
+      channelTeam: [],
+      teamMembers: [],
+      channelTeamUrl: '',
+      messageToDisplay: '',
+      cchannelUrl: ''
     });
   }
 
